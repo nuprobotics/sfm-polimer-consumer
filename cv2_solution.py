@@ -57,9 +57,49 @@ def triangulation(
         kp1: typing.Sequence[cv2.KeyPoint],
         kp2: typing.Sequence[cv2.KeyPoint],
         matches: typing.Sequence[cv2.DMatch]
-):
-    pass
-    # YOUR CODE HERE
+) -> np.ndarray:
+    """
+    :param camera_matrix: intrinsic camera matrix, np.ndarray 3x3
+    :param camera1_translation_vector: first camera translation vector, np.ndarray 3x1
+    :param camera1_rotation_matrix: first camera rotation matrix, np.ndarray 3x3
+    :param camera2_translation_vector: second camera translation vector, np.ndarray 3x1
+    :param camera2_rotation_matrix: second camera rotation matrix, np.ndarray 3x3
+    :param kp1: key points from the first image
+    :param kp2: key points from the second image
+    :param matches: sequence of matched key points between the two images
+    :return: triangulated 3D points, np.ndarray Nx3
+    """
+
+    proj_matrix1 = camera_matrix @ np.hstack(
+        (camera1_rotation_matrix.T, -camera1_rotation_matrix.T @ camera1_translation_vector))
+    proj_matrix2 = camera_matrix @ np.hstack(
+        (camera2_rotation_matrix.T, -camera2_rotation_matrix.T @ camera2_translation_vector))
+
+    points1 = np.array([kp1[m.queryIdx].pt for m in matches])
+    points2 = np.array([kp2[m.trainIdx].pt for m in matches])
+
+    points_3d = []
+
+    for pt1, pt2 in zip(points1, points2):
+        pt1_homog = np.array([pt1[0], pt1[1], 1.0])
+        pt2_homog = np.array([pt2[0], pt2[1], 1.0])
+
+        # Set up the linear system Ax = 0
+        A = np.array([
+            -pt1_homog[0] * proj_matrix1[2].T + proj_matrix1[0].T,
+            pt1_homog[1] * proj_matrix1[2].T - proj_matrix1[1].T,
+            -pt2_homog[0] * proj_matrix2[2].T + proj_matrix2[0].T,
+            pt2_homog[1] * proj_matrix2[2].T - proj_matrix2[1].T
+        ])
+
+        # Solve using SVD
+        _, _, Vt = np.linalg.svd(A)
+        X = Vt[-1]
+        points_3d.append(X[:3] / X[3])
+
+    points_3d = np.array(points_3d)
+
+    return points_3d
 
 
 # Task 4

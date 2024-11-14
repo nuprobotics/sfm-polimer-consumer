@@ -71,9 +71,9 @@ def triangulation(
     """
 
     proj_matrix1 = camera_matrix @ np.hstack(
-        (camera1_rotation_matrix.T, -camera1_rotation_matrix.T @ camera1_translation_vector))
+        (camera1_rotation_matrix, camera1_translation_vector))
     proj_matrix2 = camera_matrix @ np.hstack(
-        (camera2_rotation_matrix.T, -camera2_rotation_matrix.T @ camera2_translation_vector))
+        (camera2_rotation_matrix, camera2_translation_vector))
 
     points1 = np.array([kp1[m.queryIdx].pt for m in matches])
     points2 = np.array([kp2[m.trainIdx].pt for m in matches])
